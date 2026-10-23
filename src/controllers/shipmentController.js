@@ -1,3 +1,4 @@
+
 const prisma = require('../prisma/client');
 
 const createShipment = async (req, res) => {
@@ -13,16 +14,25 @@ const createShipment = async (req, res) => {
     }
 
     const order = await prisma.order.findFirst({
-      where: {
-        oid,
-        uid
-      }
+      where: { oid, uid }
     });
 
     if (!order) {
       return res.status(404).json({
         status: 'ERROR',
         message: 'Order not found'
+      });
+    }
+
+    // Kiểm tra đơn hàng đã có Shipment chưa
+    const existingShipment = await prisma.shipment.findFirst({
+      where: { oid }
+    });
+
+    if (existingShipment) {
+      return res.status(400).json({
+        status: 'ERROR',
+        message: 'Order already has a shipment'
       });
     }
 
@@ -54,13 +64,9 @@ const getMyShipments = async (req, res) => {
 
     const shipments = await prisma.shipment.findMany({
       where: {
-        order: {
-          uid
-        }
+        order: { uid }
       },
-      orderBy: {
-        shipid: 'asc'
-      },
+      orderBy: { shipid: 'asc' },
       include: {
         order: {
           select: {
