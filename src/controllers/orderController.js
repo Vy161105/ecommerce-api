@@ -1,3 +1,4 @@
+
 const prisma = require('../prisma/client');
 
 const createOrder = async (req, res) => {
@@ -184,7 +185,63 @@ const getMyOrders = async (req, res) => {
   }
 };
 
+const getOrderDetail = async (req, res) => {
+  try {
+    const uid = Number(req.user.uid);
+    const oid = Number(req.params.oid);
+
+    if (!Number.isInteger(oid) || oid <= 0) {
+      return res.status(400).json({
+        status: 'ERROR',
+        message: 'Invalid order ID'
+      });
+    }
+
+    const order = await prisma.order.findFirst({
+      where: {
+        oid,
+        uid
+      },
+      include: {
+        orderDetails: {
+          include: {
+            product: {
+              select: {
+                pid: true,
+                pname: true,
+                price: true
+              }
+            }
+          }
+        },
+        shipments: true
+      }
+    });
+
+    if (!order) {
+      return res.status(404).json({
+        status: 'ERROR',
+        message: 'Order not found'
+      });
+    }
+
+    return res.status(200).json({
+      status: 'OK',
+      message: 'Order details retrieved successfully',
+      data: order
+    });
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      status: 'ERROR',
+      message: 'Failed to get order details'
+    });
+  }
+};
+
 module.exports = {
   createOrder,
-  getMyOrders
+  getMyOrders,
+  getOrderDetail
 };
